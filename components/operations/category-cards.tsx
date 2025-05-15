@@ -2,7 +2,7 @@
 
 import { Trash2 } from "lucide-react"
 import { useState } from "react"
-import { APISDK, IDish } from "@/libs/api"
+import { APISDK } from "@/libs/api"
 
 export function CategoryCards(
   {
