@@ -1,1 +1,1 @@
-/// <reference types="tinymce" /> 
+declare module 'tinymce';
