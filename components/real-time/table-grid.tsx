@@ -74,7 +74,7 @@ export default function TableGridSystem({
         capacity: tableData.capacity,
         meta_data: {
           status: 'Untouched',
-          qr_code: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https://dine.jeevic.com/book-table/${tableData.name}`,
+          qr_code: `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=https://dine.jeevic.com/book/${tableData.name}`,
         }
       });
       setTables([...tables, newTable.data]);

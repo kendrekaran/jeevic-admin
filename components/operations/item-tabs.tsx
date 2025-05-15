@@ -24,7 +24,7 @@ export function ItemTabs({
       <div className="flex space-x-6 overflow-x-auto pb-2">
         {tabs.map((tab) => (
           <button
-            key={tab.name}
+            key={tab.id}
             className={`pb-2 px-1 font-medium text-sm whitespace-nowrap ${
               activeTab === tab.id
                 ? "text-orange-500 border-b-2 border-orange-500"
