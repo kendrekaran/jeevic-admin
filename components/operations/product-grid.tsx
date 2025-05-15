@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { ChevronRight, Plus, X, Pencil, ArrowUpToLine } from "lucide-react"
+import { ChevronRight, Plus, X, Pencil, ArrowUpToLine, Trash2 } from "lucide-react"
 import { APISDK, IDish, IDishCategory } from "@/libs/api"
 
 export default function ProductGridWithModal({
@@ -10,20 +10,23 @@ export default function ProductGridWithModal({
   setDishes,
   categories,
   activeTab,
-  refreshData
+  refreshData,
+  onDishDeleted
 }: {
   isLoading: boolean
   dishes: IDish[]
-  setDishes: (dish: IDish) => void  // Changed to accept a single dish
+  setDishes: (dish: IDish) => void
   categories: IDishCategory[]
   activeTab: string
   refreshData?: () => Promise<void>
+  onDishDeleted?: (dishId: string) => void
 }) {
   const [filteredDishes, setFilteredDishes] = useState<IDish[]>(dishes)
   const [availability, setAvailability] = useState<Record<string, boolean>>({})
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false)
   const [currentProduct, setCurrentProduct] = useState<IDish | null>(null)
+  const [isDeletingDish, setIsDeletingDish] = useState<string | null>(null)
   const [editedProduct, setEditedProduct] = useState<IDish>({
     name: "",
     price: 0,
@@ -134,6 +137,36 @@ export default function ProductGridWithModal({
 
     closeModal()
   }
+
+  // Function to handle dish deletion
+  const handleDeleteDish = async (dishId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click event
+    
+    if (confirm("Are you sure you want to delete this dish?")) {
+      try {
+        setIsDeletingDish(dishId);
+        const token = localStorage.getItem("access_token");
+        const api = APISDK.getInstance(token || "");
+        await api.deleteDish(dishId);
+        
+        // Update local state to remove the dish
+        if (onDishDeleted) {
+          onDishDeleted(dishId);
+        }
+        
+        // If refreshData is provided, call it to update the dish counts
+        if (refreshData) {
+          await refreshData();
+        }
+      } catch (error) {
+        console.error("Error deleting dish:", error);
+        alert("Failed to delete the dish. Please try again.");
+      } finally {
+        setIsDeletingDish(null);
+      }
+    }
+  };
+
   const handleNewProductSubmit = async () => {
     const api = APISDK.getInstance();
 
@@ -188,11 +221,24 @@ export default function ProductGridWithModal({
     <div className="relative">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredDishes.map((product) => (
-          <div key={product.id} className="border rounded-lg overflow-hidden shadow hover:shadow-md transition-shadow cursor-pointer" onClick={() => {
+          <div key={product.id} className="border rounded-lg overflow-hidden shadow hover:shadow-md transition-shadow cursor-pointer relative group" onClick={() => {
             openEditModal(product)
           }}>
             <div className="h-48 overflow-hidden">
               <img src={product.picture} alt={product.name} className="w-full h-full object-cover" />
+              {/* Delete button */}
+              <button 
+                onClick={(e) => handleDeleteDish(product.id, e)}
+                disabled={isDeletingDish === product.id}
+                className="absolute top-3 right-3 p-1.5 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700 z-10"
+                title="Delete dish"
+              >
+                {isDeletingDish === product.id ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Trash2 size={16} />
+                )}
+              </button>
             </div>
             <div className="p-4">
               <div className="flex items-center justify-between mt-2">
@@ -317,20 +363,39 @@ export default function ProductGridWithModal({
                 </div>
               </div>
               
-              <div className="mt-8 flex justify-end">
+              <div className="mt-8 flex justify-between">
                 <button
                   type="button"
-                  onClick={closeModal}
-                  className="mr-3 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (currentProduct) handleDeleteDish(currentProduct.id, e);
+                  }}
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-500 hover:bg-red-600 flex items-center"
+                  disabled={isDeletingDish === currentProduct.id}
                 >
-                  Cancel
+                  {isDeletingDish === currentProduct.id ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  ) : (
+                    <Trash2 size={16} className="mr-2" />
+                  )}
+                  Delete Dish
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600"
-                >
-                  Save Changes
-                </button>
+                
+                <div>
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="mr-3 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-500 hover:bg-orange-600"
+                  >
+                    Save Changes
+                  </button>
+                </div>
               </div>
             </form>
           </div>

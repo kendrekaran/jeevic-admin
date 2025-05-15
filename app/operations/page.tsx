@@ -50,6 +50,11 @@ export default function OperationsPage() {
       setCategories(categoriesData);
       setDishes(dishesData);
       setTabs([allItemsTab, ...categoryCounts]);
+      
+      // If the active tab no longer exists (category was deleted), reset to "ALL ITEMS"
+      if (activeTab !== "ALL ITEMS" && !categoriesData.some(cat => cat.id === activeTab)) {
+        setActiveTab("ALL ITEMS");
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -60,8 +65,16 @@ export default function OperationsPage() {
     const token = localStorage.getItem("access_token");
     if (token) {
       await fetchData(token);
+      setIsLoading(false);
     }
   }
+
+  // Function to handle category deletion
+  const handleCategoryDeleted = async () => {
+    await refreshData();
+    // Always switch to "ALL ITEMS" tab after a category is deleted
+    setActiveTab("ALL ITEMS");
+  };
 
   // Function to update tabs when a new dish is added without fetching from API
   const updateTabsAfterDishAdded = (newDish: IDish) => {
@@ -78,6 +91,32 @@ export default function OperationsPage() {
         return tab;
       });
     });
+  };
+
+  // Function to handle dish deletion
+  const handleDishDeleted = (dishId: string) => {
+    // Get the category ID of the deleted dish
+    const deletedDish = dishes.find(dish => dish.id === dishId);
+    
+    // Update dishes state by removing the deleted dish
+    setDishes(prevDishes => prevDishes.filter(dish => dish.id !== dishId));
+    
+    // Update tabs to reflect the deleted dish
+    if (deletedDish) {
+      setTabs(prevTabs => {
+        return prevTabs.map(tab => {
+          // Update the ALL ITEMS tab count
+          if (tab.name === "ALL ITEMS") {
+            return { ...tab, count: tab.count - 1 };
+          }
+          // Update the specific category tab count
+          if (tab.id === deletedDish.dish_category_id) {
+            return { ...tab, count: tab.count - 1 };
+          }
+          return tab;
+        });
+      });
+    }
   };
 
   // Initial data loading
@@ -97,7 +136,7 @@ export default function OperationsPage() {
     if (activeTab === "ALL ITEMS") {
       return dishes;
     } else {
-      const selectedCategory = categories.find(category => category.name === activeTab);
+      const selectedCategory = categories.find(category => category.id === activeTab);
       return selectedCategory 
         ? dishes.filter(dish => dish.dish_category_id === selectedCategory.id)
         : dishes;
@@ -136,7 +175,10 @@ export default function OperationsPage() {
           </button>
         </div>
 
-        <CategoryCards tabs={tabs}/>
+        <CategoryCards 
+          tabs={tabs} 
+          onCategoryDeleted={handleCategoryDeleted}
+        />
 
         <div className="mt-8">
           <h3 className="text-lg text-gray-700 font-medium mb-4">Items</h3>
@@ -148,6 +190,7 @@ export default function OperationsPage() {
             categories={categories} 
             activeTab={activeTab}
             refreshData={refreshData}
+            onDishDeleted={handleDishDeleted}
           />
         </div>
 
