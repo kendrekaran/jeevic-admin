@@ -147,10 +147,6 @@ export default function Login() {
                                     className="w-28 rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 text-black focus:ring-orange-500 text-sm"
                                 >
                                     <option value="+91">+91</option>
-                                    <option value="+1">+1</option>
-                                    <option value="+44">+44</option>
-                                    <option value="+61">+61</option>
-                                    <option value="+86">+86</option>
                                 </select>
                                 <input
                                     id="phone"

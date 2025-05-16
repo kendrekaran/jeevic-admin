@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MoreVertical } from "lucide-react";
 import { APISDK, IDineInTable } from "@/libs/api";
+import { usePopup } from "@/context/popup-context";
 
 interface BillItem {
   name: string;
@@ -33,6 +34,7 @@ export function BillDetails({ bill, onUpdateCapacityAction, table }: BillDetails
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const tableDetailsRef = useRef<HTMLDivElement>(null);
+  const { showPopup } = usePopup();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -80,6 +82,8 @@ export function BillDetails({ bill, onUpdateCapacityAction, table }: BillDetails
     });
 
     await api.markBookingAsCompleted(booking_id);
+    
+    showPopup("Payment completed successfully", { type: "success" });
   };
 
   const toggleMenu = () => {
@@ -99,18 +103,26 @@ export function BillDetails({ bill, onUpdateCapacityAction, table }: BillDetails
 
     const api = APISDK.getInstance(token);
 
-    await api.markTableAsCleaned(table_id);
+    try {
+      await api.markTableAsCleaned(table_id);
+      showPopup("Table marked as cleaned", { type: "success" });
+    } catch (error) {
+      console.error("Error marking table as cleaned:", error);
+      showPopup("Failed to mark table as cleaned", { type: "error" });
+    }
   }
 
   const handleDeleteTable = () => {
     setShowMenu(false);
     // Add delete table functionality here
-    alert("Delete table functionality would go here");
+    showPopup("Delete table functionality would go here", { type: "info" });
   };
 
   const handleCapacityChange = (newCapacity: number) => {
     onUpdateCapacityAction(newCapacity);
     setShowTableDetails(false);
+    
+    showPopup(`Table capacity updated to ${newCapacity} seats`, { type: "success" });
   };
 
   if(!table) {

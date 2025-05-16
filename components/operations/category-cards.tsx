@@ -3,6 +3,7 @@
 import { Trash2 } from "lucide-react"
 import { useState } from "react"
 import { APISDK } from "@/libs/api"
+import { usePopup } from "@/context/popup-context"
 
 export function CategoryCards(
   {
@@ -14,6 +15,7 @@ export function CategoryCards(
   }>
 ) {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const { showPopup, showConfirm } = usePopup();
 
     if (!tabs) {
         return (
@@ -29,7 +31,7 @@ export function CategoryCards(
       e.stopPropagation(); // Prevent card click event
       
       if (categoryId === "all-items") {
-        alert("Cannot delete 'All Items' category");
+        showPopup("Cannot delete 'All Items' category", { type: "warning" });
         return;
       }
       
@@ -47,26 +49,38 @@ export function CategoryCards(
         // Ask for confirmation with dish count
         const confirmMessage = `Are you sure you want to delete "${categoryName}"? This will also delete ${dishesToDelete.length} dish${dishesToDelete.length !== 1 ? 'es' : ''} in this category.`;
         
-        if (confirm(confirmMessage)) {
-          setIsDeleting(categoryId);
-          
-          // Delete all dishes in this category
-          const deletePromises = dishesToDelete.map(dish => api.deleteDish(dish.id));
-          await Promise.all(deletePromises);
-          
-          // Then delete the category itself
-          await api.deleteDishCategory(categoryId);
-          
-          console.log(`Deleted category ${categoryId} and ${dishesToDelete.length} associated dishes`);
-          
-          // Call the callback to refresh data
-          if (onCategoryDeleted) {
-            await onCategoryDeleted();
+        showConfirm(
+          confirmMessage,
+          async () => {
+            setIsDeleting(categoryId);
+            
+            // Delete all dishes in this category
+            const deletePromises = dishesToDelete.map(dish => api.deleteDish(dish.id));
+            await Promise.all(deletePromises);
+            
+            // Then delete the category itself
+            await api.deleteDishCategory(categoryId);
+            
+            console.log(`Deleted category ${categoryId} and ${dishesToDelete.length} associated dishes`);
+            
+            showPopup(`Successfully deleted "${categoryName}" and ${dishesToDelete.length} associated dishes`, { 
+              type: "success" 
+            });
+            
+            // Call the callback to refresh data
+            if (onCategoryDeleted) {
+              await onCategoryDeleted();
+            }
+          },
+          {
+            title: "Delete Category",
+            confirmText: "Delete",
+            cancelText: "Cancel"
           }
-        }
+        );
       } catch (error) {
         console.error("Error deleting category:", error);
-        alert("Failed to delete category. Please try again.");
+        showPopup("Failed to delete category. Please try again.", { type: "error" });
       } finally {
         setIsDeleting(null);
       }

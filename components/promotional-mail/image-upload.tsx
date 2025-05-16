@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Upload } from "lucide-react"
+import { usePopup } from "@/context/popup-context"
 
 interface ImageUploadProps {
   onImageSelectedAction: (imageUrl: string) => void
@@ -9,6 +10,7 @@ interface ImageUploadProps {
 
 export function ImageUpload({ onImageSelectedAction }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false)
+  const { showPopup } = usePopup()
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -36,7 +38,7 @@ export function ImageUpload({ onImageSelectedAction }: ImageUploadProps) {
 
   const handleFile = (file: File) => {
     if (!file.type.match("image.*")) {
-      alert("Please select an image file")
+      showPopup("Please select an image file", { type: "error" })
       return
     }
 

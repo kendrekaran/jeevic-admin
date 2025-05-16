@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/sidebar"
 import "./globals.css"
 import type { Metadata } from "next";
 import { AuthContextProvider } from '@/context/provider';
+import { PopupProvider } from '@/context/popup-context';
 
 
 export const metadata: Metadata = {
@@ -15,12 +16,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <AuthContextProvider>
-          <div className="flex h-screen bg-white">
-            <Sidebar />
-            <div className="flex-1 flex flex-col overflow-auto">
-              {children}
+          <PopupProvider>
+            <div className="flex h-screen bg-white">
+              <Sidebar />
+              <div className="flex-1 flex flex-col overflow-auto">
+                {children}
+              </div>
             </div>
-          </div>
+          </PopupProvider>
         </AuthContextProvider>
       </body>
     </html>

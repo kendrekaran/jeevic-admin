@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react"
 import { ChevronRight, Plus, X, Pencil, ArrowUpToLine, Trash2 } from "lucide-react"
 import { APISDK, IDish, IDishCategory } from "@/libs/api"
+import { usePopup } from "@/context/popup-context"
 
 export default function ProductGridWithModal({
   isLoading,
@@ -39,6 +40,7 @@ export default function ProductGridWithModal({
     created_at: new Date(),
     updated_at: new Date(),
   })
+  const { showPopup, showConfirm } = usePopup()
 
   // New product state
   const [newProductName, setNewProductName] = useState('')
@@ -142,29 +144,39 @@ export default function ProductGridWithModal({
   const handleDeleteDish = async (dishId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card click event
     
-    if (confirm("Are you sure you want to delete this dish?")) {
-      try {
-        setIsDeletingDish(dishId);
-        const token = localStorage.getItem("access_token");
-        const api = APISDK.getInstance(token || "");
-        await api.deleteDish(dishId);
-        
-        // Update local state to remove the dish
-        if (onDishDeleted) {
-          onDishDeleted(dishId);
+    showConfirm(
+      "Are you sure you want to delete this dish?", 
+      async () => {
+        try {
+          setIsDeletingDish(dishId);
+          const token = localStorage.getItem("access_token");
+          const api = APISDK.getInstance(token || "");
+          await api.deleteDish(dishId);
+          
+          // Update local state to remove the dish
+          if (onDishDeleted) {
+            onDishDeleted(dishId);
+          }
+          
+          // If refreshData is provided, call it to update the dish counts
+          if (refreshData) {
+            await refreshData();
+          }
+          
+          showPopup("Dish deleted successfully", { type: "success" });
+        } catch (error) {
+          console.error("Error deleting dish:", error);
+          showPopup("Failed to delete the dish. Please try again.", { type: "error" });
+        } finally {
+          setIsDeletingDish(null);
         }
-        
-        // If refreshData is provided, call it to update the dish counts
-        if (refreshData) {
-          await refreshData();
-        }
-      } catch (error) {
-        console.error("Error deleting dish:", error);
-        alert("Failed to delete the dish. Please try again.");
-      } finally {
-        setIsDeletingDish(null);
+      },
+      {
+        title: "Delete Dish",
+        confirmText: "Delete",
+        cancelText: "Cancel"
       }
-    }
+    );
   };
 
   const handleNewProductSubmit = async () => {

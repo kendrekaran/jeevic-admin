@@ -16,7 +16,8 @@ import {
   // Ticket,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  Users
 } from "lucide-react"
 
 export function Sidebar() {
@@ -89,6 +90,12 @@ export function Sidebar() {
           )}
           <NavItem href="/staff" icon={<Users size={18} />} label="Staff Management" collapsed={collapsed} />
         </div> */}
+        <div className="py-4">
+          <div className="px-4 py-2">
+            <p className="text-xs text-gray-400 font-medium">Employee Management</p>
+          </div>
+          <NavItem href="/employees" icon={<Users size={18} />} label="Employee Management" collapsed={collapsed} />
+        </div>
       </div>
 
       <div className={`p-4 border-t ${collapsed ? 'flex flex-col items-center' : ''}`}>
