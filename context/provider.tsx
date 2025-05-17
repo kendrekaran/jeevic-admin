@@ -5,12 +5,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { AuthContext } from './auth';
 
 export const AuthContextProvider = ({children}: {children: React.ReactNode}) => {
-    const {isAuthenticated, isLoading, user} = useAuth();
+    const {isAuthenticated, isLoading, user, setIsAuthenticated, setUser, refreshAuth} = useAuth();
     const contextValue = useMemo(() => ({
         user,
         isLoading,
         isAuthenticated,
-    }), [user, isLoading, isAuthenticated]);
+        setIsAuthenticated,
+        setUser,
+        refreshAuth
+    }), [user, isLoading, isAuthenticated, setIsAuthenticated, setUser, refreshAuth]);
 
     return <AuthContext.Provider value={contextValue}>
         {children}

@@ -147,35 +147,35 @@ export default function ProductGridWithModal({
     showConfirm(
       "Are you sure you want to delete this dish?", 
       async () => {
-        try {
-          setIsDeletingDish(dishId);
-          const token = localStorage.getItem("access_token");
-          const api = APISDK.getInstance(token || "");
-          await api.deleteDish(dishId);
-          
-          // Update local state to remove the dish
-          if (onDishDeleted) {
-            onDishDeleted(dishId);
-          }
-          
-          // If refreshData is provided, call it to update the dish counts
-          if (refreshData) {
-            await refreshData();
-          }
+      try {
+        setIsDeletingDish(dishId);
+        const token = localStorage.getItem("access_token");
+        const api = APISDK.getInstance(token || "");
+        await api.deleteDish(dishId);
+        
+        // Update local state to remove the dish
+        if (onDishDeleted) {
+          onDishDeleted(dishId);
+        }
+        
+        // If refreshData is provided, call it to update the dish counts
+        if (refreshData) {
+          await refreshData();
+        }
           
           showPopup("Dish deleted successfully", { type: "success" });
-        } catch (error) {
-          console.error("Error deleting dish:", error);
+      } catch (error) {
+        console.error("Error deleting dish:", error);
           showPopup("Failed to delete the dish. Please try again.", { type: "error" });
-        } finally {
-          setIsDeletingDish(null);
-        }
+      } finally {
+        setIsDeletingDish(null);
+      }
       },
       {
         title: "Delete Dish",
         confirmText: "Delete",
         cancelText: "Cancel"
-      }
+    }
     );
   };
 

@@ -52,31 +52,31 @@ export function CategoryCards(
         showConfirm(
           confirmMessage,
           async () => {
-            setIsDeleting(categoryId);
-            
-            // Delete all dishes in this category
-            const deletePromises = dishesToDelete.map(dish => api.deleteDish(dish.id));
-            await Promise.all(deletePromises);
-            
-            // Then delete the category itself
-            await api.deleteDishCategory(categoryId);
-            
-            console.log(`Deleted category ${categoryId} and ${dishesToDelete.length} associated dishes`);
+          setIsDeleting(categoryId);
+          
+          // Delete all dishes in this category
+          const deletePromises = dishesToDelete.map(dish => api.deleteDish(dish.id));
+          await Promise.all(deletePromises);
+          
+          // Then delete the category itself
+          await api.deleteDishCategory(categoryId);
+          
+          console.log(`Deleted category ${categoryId} and ${dishesToDelete.length} associated dishes`);
             
             showPopup(`Successfully deleted "${categoryName}" and ${dishesToDelete.length} associated dishes`, { 
               type: "success" 
             });
-            
-            // Call the callback to refresh data
-            if (onCategoryDeleted) {
-              await onCategoryDeleted();
-            }
+          
+          // Call the callback to refresh data
+          if (onCategoryDeleted) {
+            await onCategoryDeleted();
+          }
           },
           {
             title: "Delete Category",
             confirmText: "Delete",
             cancelText: "Cancel"
-          }
+        }
         );
       } catch (error) {
         console.error("Error deleting category:", error);

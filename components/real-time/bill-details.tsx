@@ -104,7 +104,7 @@ export function BillDetails({ bill, onUpdateCapacityAction, table }: BillDetails
     const api = APISDK.getInstance(token);
 
     try {
-      await api.markTableAsCleaned(table_id);
+    await api.markTableAsCleaned(table_id);
       showPopup("Table marked as cleaned", { type: "success" });
     } catch (error) {
       console.error("Error marking table as cleaned:", error);

@@ -1,24 +1,47 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { APISDK } from '@/libs/api';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 
 // Define the expected response type
 interface AuthResponse {
     message: string;
     access_token: string;
+    // Added more possible response fields
+    data?: {
+        access_token?: string;
+    };
+    token?: string;
+    success?: boolean;
 }
 
 export default function Login() {
     const router = useRouter();
+    const { isAuthenticated, isLoading, setIsAuthenticated, refreshAuth } = useAuth();
     const [countryCode, setCountryCode] = useState('+91');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [otp, setOtp] = useState('');
     const [isOtpSent, setIsOtpSent] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    
+    // Load saved phone number on component mount
+    useEffect(() => {
+        const savedPhoneNumber = localStorage.getItem('lastPhoneNumber');
+        if (savedPhoneNumber) {
+            setPhoneNumber(savedPhoneNumber);
+        }
+    }, []);
+    
+    // Redirect if user is already authenticated
+    useEffect(() => {
+        if (isAuthenticated && !isLoading) {
+            router.push('/');
+        }
+    }, [isAuthenticated, isLoading, router]);
 
     const handleSendOtp = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -29,9 +52,13 @@ export default function Login() {
         }
         
         try {
-            setIsLoading(true);
+            setIsLoggingIn(true);
             setError('');
             setSuccess('');
+            
+            // Save the phone number for future logins
+            localStorage.setItem('lastPhoneNumber', phoneNumber);
+            
             const api = APISDK.getInstance();
             const response = await api.loginRequest(countryCode, phoneNumber);
             
@@ -41,9 +68,45 @@ export default function Login() {
             console.error('Failed to send OTP:', error);
             setError("Failed to send OTP. Please try again.");
         } finally {
-            setIsLoading(false);
+            setIsLoggingIn(false);
         }
     };
+
+    const extractTokenFromResponse = (response: AuthResponse): string | null => {
+        console.log('API Response:', JSON.stringify(response, null, 2));
+        
+        // Try all possible locations where token might be in the response
+        if (response.access_token) {
+            return response.access_token;
+        } else if (response.token) {
+            return response.token;
+        } else if (response.data?.access_token) {
+            return response.data.access_token;
+        }
+        
+        return null;
+    };
+
+    // Handle login completion and redirection
+    const completeLogin = useCallback(() => {
+        console.log('Login successful, handling redirection');
+        
+        // First update our auth state
+        if (setIsAuthenticated) {
+            setIsAuthenticated(true);
+        }
+        
+        // Then refresh auth state to load user data
+        if (refreshAuth) {
+            refreshAuth();
+        }
+        
+        // Use window.location for a full page reload to ensure fresh state
+        setTimeout(() => {
+            console.log('Navigating to home page');
+            window.location.href = '/';
+        }, 1500);
+    }, [setIsAuthenticated, refreshAuth]);
 
     const handleVerifyOtp = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,7 +117,7 @@ export default function Login() {
         }
         
         try {
-            setIsLoading(true);
+            setIsLoggingIn(true);
             setError('');
             setSuccess('');
             const api = APISDK.getInstance();
@@ -63,29 +126,47 @@ export default function Login() {
                 // Try to verify the OTP with the API
                 const response = await api.verifyAccountAccess(countryCode, phoneNumber, otp) as AuthResponse;
                 
+                // Log the entire response to see what we're getting
+                console.log('OTP Verification Response:', JSON.stringify(response, null, 2));
+                
                 // Check if the API indicates an invalid OTP
                 if (response.message?.toLowerCase().includes("invalid otp")) {
                     throw new Error("Invalid OTP. Please check and try again.");
                 }
                 
-                // Extract access_token from response
-                const accessToken = response.access_token;
+                // Extract access_token from response using our helper function
+                const accessToken = extractTokenFromResponse(response);
                 
                 if (!accessToken) {
                     throw new Error("Authentication failed: No access token received from server");
                 }
                 
-                // Store the token in localStorage
-                localStorage.setItem('access_token', accessToken);
-                setSuccess("Login successful");
-                
-                // Initialize the API with the token
-                APISDK.getInstance(accessToken);
-                
-                // Redirect to home page after successful login
-                setTimeout(() => {
-                    router.push('/');
-                }, 1000); // Small delay to show success message
+                // Store the token in localStorage with better error handling
+                try {
+                    console.log('Storing token in localStorage:', accessToken.substring(0, 10) + '...');
+                    // First, clear any existing token
+                    localStorage.removeItem('access_token');
+                    // Then set the new token
+                    localStorage.setItem('access_token', accessToken);
+                    
+                    // Verify token was stored correctly
+                    const storedToken = localStorage.getItem('access_token');
+                    if (!storedToken) {
+                        throw new Error('Failed to verify token was stored correctly');
+                    }
+                    console.log('Token stored successfully, length:', storedToken.length);
+                    
+                    setSuccess("Login successful");
+                    
+                    // Initialize the API with the token
+                    APISDK.getInstance(accessToken);
+                    
+                    // Complete the login process
+                    completeLogin();
+                } catch (storageError) {
+                    console.error('Error storing token in localStorage:', storageError);
+                    throw new Error("Failed to store authentication token. Please try again.");
+                }
             } catch (verificationError) {
                 throw verificationError;
             }
@@ -102,9 +183,23 @@ export default function Login() {
             // Clear OTP field on error
             setOtp('');
         } finally {
-            setIsLoading(false);
+            setIsLoggingIn(false);
         }
     };
+
+    // Show loading state while checking authentication
+    if (isLoading) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-gray-50">
+                <div className="text-center">
+                    <div className="flex items-center justify-center w-16 h-16 border-4 border-gray-200 border-t-4 border-t-orange-500 rounded-full animate-spin mx-auto mb-4">
+                    </div>
+                    <h2 className="text-xl font-medium text-gray-700 mb-1">Loading</h2>
+                    <p className="text-sm text-gray-500">Checking your login status...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen items-center justify-center bg-gray-50">
@@ -162,9 +257,9 @@ export default function Login() {
                         <button 
                             type="submit" 
                             className="w-full bg-orange-500 text-white py-2 px-4 rounded-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors text-sm font-medium" 
-                            disabled={isLoading}
+                            disabled={isLoggingIn}
                         >
-                            {isLoading ? "Sending OTP..." : "Send OTP"}
+                            {isLoggingIn ? "Sending OTP..." : "Send OTP"}
                         </button>
                     </form>
                 ) : (
@@ -193,9 +288,9 @@ export default function Login() {
                         <button 
                             type="submit" 
                             className="w-full bg-orange-500 text-white py-2 px-4 rounded-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors text-sm font-medium" 
-                            disabled={isLoading}
+                            disabled={isLoggingIn}
                         >
-                            {isLoading ? "Verifying..." : "Verify OTP"}
+                            {isLoggingIn ? "Verifying..." : "Verify OTP"}
                         </button>
                         
                         <button 
@@ -206,7 +301,7 @@ export default function Login() {
                                 setError('');
                                 setSuccess('');
                             }}
-                            disabled={isLoading}
+                            disabled={isLoggingIn}
                         >
                             Change Phone Number
                         </button>

@@ -25,19 +25,47 @@ export class APISDK {
   public static getInstance(
     accessToken?: string | null
   ): APISDK {
-    if (!this.instance) {
-      this.instance = new APISDK(accessToken ?? null);
-    } else if (accessToken !== undefined) {
-      this.instance.setAccessToken(accessToken);
+    // If an instance already exists, update its token if a new one is provided
+    if (APISDK.instance) {
+      if (accessToken !== undefined) {
+        console.log('APISDK: Updating instance with token:', accessToken ? `${accessToken.substring(0, 10)}... (length: ${accessToken.length})` : 'null');
+        APISDK.instance.setAccessToken(accessToken);
+      }
+      return APISDK.instance;
     }
-    return this.instance;
+
+    // For first initialization, try to get token from localStorage if not provided
+    if (accessToken === undefined && typeof window !== 'undefined') {
+      try {
+        const storedToken = localStorage.getItem('access_token');
+        if (storedToken) {
+          console.log('APISDK: Retrieved token from localStorage, length:', storedToken.length);
+          accessToken = storedToken;
+        }
+      } catch (error) {
+        console.error('APISDK: Error accessing localStorage:', error);
+      }
+    }
+
+    // Create a new instance with the provided token
+    console.log('APISDK: Creating new instance with token:', accessToken ? `${accessToken.substring(0, 10)}... (length: ${accessToken.length})` : 'null');
+    APISDK.instance = new APISDK(accessToken || null);
+    return APISDK.instance;
   }
 
   public setAccessToken(accessToken: string | null): void {
+    console.log('APISDK: Setting access token:', accessToken ? `${accessToken.substring(0, 10)}... (length: ${accessToken.length})` : 'null');
     this.accessToken = accessToken;
   }
 
   public async getUser(): Promise<IUser> {
+    if (!this.accessToken) {
+      console.error('APISDK: No access token available for getUser request');
+      throw new Error('Authentication required');
+    }
+
+    console.log('APISDK: Making getUser request with token:', this.accessToken.substring(0, 10) + '...');
+    
     const response = await fetch(
       `${APISDK.BASE_URL}/auth/user`,
       {
@@ -48,6 +76,8 @@ export class APISDK {
         },
       }
     );
+
+    console.log('APISDK: getUser response status:', response.status);
 
     if (!response.ok) {
       throw new Error(
@@ -89,7 +119,7 @@ export class APISDK {
     countryCode: string,
     phoneNumber: string,
     otp: string
-  ): Promise<{ message: string }> {
+  ): Promise<any> {
     const response = await fetch(
       `${APISDK.BASE_URL}/auth/verify-account-access`,
       {
@@ -111,6 +141,7 @@ export class APISDK {
       );
     }
 
+    // Return the full response to ensure we get the access_token
     return await response.json();
   }
 

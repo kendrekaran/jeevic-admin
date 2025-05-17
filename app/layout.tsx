@@ -4,6 +4,7 @@ import "./globals.css"
 import type { Metadata } from "next";
 import { AuthContextProvider } from '@/context/provider';
 import { PopupProvider } from '@/context/popup-context';
+import { AuthGuard } from "@/components/auth/auth-guard";
 
 
 export const metadata: Metadata = {
@@ -17,12 +18,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AuthContextProvider>
           <PopupProvider>
-            <div className="flex h-screen bg-white">
-              <Sidebar />
-              <div className="flex-1 flex flex-col overflow-auto">
-                {children}
+            <AuthGuard>
+              <div className="flex h-screen bg-white">
+                <Sidebar />
+                <div className="flex-1 flex flex-col overflow-auto">
+                  {children}
+                </div>
               </div>
-            </div>
+            </AuthGuard>
           </PopupProvider>
         </AuthContextProvider>
       </body>
