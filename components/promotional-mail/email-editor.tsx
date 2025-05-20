@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useState, useRef } from "react"
 import { Editor } from '@tinymce/tinymce-react'
@@ -8,13 +8,13 @@ import { ImageUpload } from "./image-upload"
 import { EmailTemplates } from "./email-templates"
 import { usePopup } from "@/context/popup-context"
 
-// Define types for the TinyMCE editor instance
 type TinyMCEInstance = {
   insertContent: (content: string) => void;
   getContent: () => string;
   setContent: (content: string) => void;
   focus: () => void;
-}
+  getDoc: () => Document | null;
+};
 
 export function EmailEditor() {
   const [subject, setSubject] = useState("Feastables is now available at Jeevic 🔥🔥🔥")
@@ -32,8 +32,8 @@ export function EmailEditor() {
   const editorRef = useRef<TinyMCEInstance | null>(null)
   const { showPopup } = usePopup()
 
-  const handleEditorChange = (content: string) => {
-    setContent(content)
+  const handleEditorChange = (newContent: string, editor: TinyMCEInstance) => {
+    setContent(newContent)
   }
 
   const handleSendEmail = () => {
@@ -49,6 +49,9 @@ export function EmailEditor() {
 
   const handleSelectTemplateAction = (templateContent: string) => {
     setContent(templateContent)
+    if (editorRef.current) {
+      editorRef.current.setContent(templateContent)
+    }
     setShowTemplates(false)
   }
 
@@ -82,24 +85,37 @@ export function EmailEditor() {
 
             <Editor
               apiKey="l8xhuswghojjq8qw4hsbkssa0zmskqvo1lkw26940o5o1hl1"
-              onInit={(evt, editor) => editorRef.current = editor}
-              initialValue={content}
+              onInit={(evt, editor) => {
+                editorRef.current = editor;
+
+                const doc = editor.getDoc();
+                if (doc) {
+                  console.log('TinyMCE iframe HTML dir after init:', doc.documentElement.getAttribute('dir'));
+                  console.log('TinyMCE iframe BODY dir after init:', doc.body.getAttribute('dir'));
+                  console.log('TinyMCE iframe BODY computed style direction:', window.getComputedStyle(doc.body).direction);
+                }
+              }}
+              value={content}
               onEditorChange={handleEditorChange}
               init={{
                 height: 400,
                 menubar: false,
+                directionality: 'ltr',
                 plugins: [
-                  'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                  'advlist', 'autolink', 'lists', 'link', 'charmap', 'preview',
                   'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
                   'insertdatetime', 'media', 'table', 'help', 'wordcount'
                 ],
                 toolbar: 'undo redo | blocks | ' +
                   'bold italic forecolor | alignleft aligncenter ' +
                   'alignright alignjustify | bullist numlist outdent indent | ' +
-                  'removeformat | image | help',
-                content_style: 'body { font-family: Inter, sans-serif; font-size: 14px }',
+                  'removeformat | help',
+                content_style: 'body { font-family: Inter, sans-serif; font-size: 14px; direction: ltr !important; }',
                 branding: false,
-                promotion: false
+                promotion: false,
+                forced_root_block_attrs: {
+                  "dir": "ltr"
+                }
               }}
             />
           </div>
@@ -140,7 +156,6 @@ export function EmailEditor() {
         </div>
       </div>
 
-      {/* Email Preview */}
       <EmailPreview subject={subject} content={content} />
     </div>
   )
