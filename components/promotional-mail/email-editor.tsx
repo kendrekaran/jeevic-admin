@@ -32,7 +32,7 @@ export function EmailEditor() {
   const editorRef = useRef<TinyMCEInstance | null>(null)
   const { showPopup } = usePopup()
 
-  const handleEditorChange = (newContent: string, editor: TinyMCEInstance) => {
+  const handleEditorChange = (newContent: string) => {
     setContent(newContent)
   }
 

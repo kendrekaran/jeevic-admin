@@ -16,6 +16,9 @@ import {
   // Ticket,
   ChevronLeft,
   ChevronRight,
+  Package,
+  Tag,
+  ShoppingCart,
   // Users
 } from "lucide-react"
 import { LogoutButton } from "./auth/logout-button"
@@ -65,16 +68,17 @@ export function Sidebar() {
       </div>
 
       <div className="flex-1 overflow-auto">
-        {/* <div className="py-4">
+        <div className="py-4">
           {!collapsed && (
             <div className="px-4 py-2">
               <p className="text-xs text-gray-400 font-medium">CONVENIENCE</p>
             </div>
           )}
           <NavItem href="/oveview" icon={<LayoutGrid size={18} />} label="Overview" collapsed={collapsed} />
+          <NavItem href="/orders" icon={<ShoppingCart size={18} />} label="Orders" collapsed={collapsed} />
           <NavItem href="/inventory" icon={<Package size={18} />} label="Inventory" collapsed={collapsed} />
           <NavItem href="/promotions" icon={<Tag size={18} />} label="Promotions & Sales" collapsed={collapsed} />
-        </div> */}
+        </div>
 
         <div className="py-4">
           {!collapsed && (
